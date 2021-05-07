@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, flash
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
 
@@ -21,11 +21,24 @@ def show_homepage():
 def handle_questions(num):
     """Shows question depending on which and how many"""
 
-    ques = satisfaction_survey.questions[int(num)].question
-    number = num
-    choices = satisfaction_survey.questions[int(num)].choices
+    try:
+        ques = satisfaction_survey.questions[int(num)].question
+        number = f"{int(num) + 1}"
+        choices = satisfaction_survey.questions[int(num)].choices
+    except:
+        flash("Invalid Question")
+        return redirect(f"/questions/{len(responses)}")
+    
+    if int(num) == len(responses):
+        return render_template('questionnaire.html', ques=ques, num=number, choices=choices)
+    elif len(responses) >= len(satisfaction_survey.questions):
+        flash("Invalid Question")
+        return redirect("/thankyou")
+    else:
+        flash("Invalid Question")
+        return redirect(f"/questions/{len(responses)}")
 
-    return render_template('questionnaire.html', ques=ques, num=number, choices=choices)
+    #last question keeps redirecting to itself and not /thankyou
 
 @app.route("/answer", methods=["POST"])
 def handle_answers():
@@ -45,3 +58,4 @@ def show_thanks():
     """Thank you page"""
 
     return render_template("thanks.html", responses=responses)
+
