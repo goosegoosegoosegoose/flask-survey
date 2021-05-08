@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
 
@@ -6,7 +6,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = "whatnow"
 debug = DebugToolbarExtension(app)
 
-responses = []
 
 @app.route("/")
 def show_homepage():
@@ -20,6 +19,8 @@ def show_homepage():
 @app.route("/questions/<num>")
 def handle_questions(num):
     """Shows question depending on which and how many"""
+
+    responses = session['responses']
 
     try:
         ques = satisfaction_survey.questions[int(num)].question
@@ -45,17 +46,28 @@ def handle_answers():
     """Append sent answer to responses list and redirect to next question"""
 
     answer = request.form["resp"]
-    responses.append(answer)
     
+    responses = session['responses']
+    responses.append(answer)
+    session['responses'] = responses
     
     if len(responses) < len(satisfaction_survey.questions):
         return redirect(f"/questions/{len(responses)}")
-    else:
+    elif len(responses) == len(satisfaction_survey.questions):
         return redirect("/thankyou")
+
 
 @app.route("/thankyou")
 def show_thanks():
     """Thank you page"""
 
-    return render_template("thanks.html", responses=responses)
+    return render_template("thanks.html")
 
+@app.route("/session", methods=["POST"])
+def manage_session():
+    """Save answers in session as cookies, reset both session and responses list"""
+
+    responses = []
+    session['responses'] = responses
+    
+    return redirect('/questions/0')
